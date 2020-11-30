@@ -19,7 +19,7 @@ type Opts struct {
 	MySQLPort              string  `short:"p" long:"port" default:"3306" description:"Port"`
 	MySQLUser              string  `short:"u" long:"user" default:"root" description:"Username"`
 	MySQLPass              *string `short:"P" long:"password" description:"Password"`
-	MySQLDBName            string  `long:"database" default:"queue_mercari" description:"database name connect to"`
+	MySQLDBName            string  `long:"database" default:"" description:"database name connect to"`
 }
 
 // CreateDSN creates DSN from Opts
