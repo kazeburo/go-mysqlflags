@@ -11,8 +11,8 @@ import (
 	"github.com/vaughan0/go-ini"
 )
 
-// Opts mysql connection related flags used with go-flags
-type Opts struct {
+// MyOpts mysql connection related flags used with go-flags
+type MyOpts struct {
 	MySQLDefaultsExtraFile string  `long:"defaults-extra-file" description:"path to defaults-extra-file"`
 	MySQLSocket            string  `long:"mysql-socket" description:"path to mysql listen sock"`
 	MySQLHost              string  `short:"H" long:"host" default:"localhost" description:"Hostname"`
@@ -23,7 +23,7 @@ type Opts struct {
 }
 
 // CreateDSN creates DSN from Opts
-func CreateDSN(opts Opts, timeout time.Duration, debug bool) (string, error) {
+func CreateDSN(opts MyOpts, timeout time.Duration, debug bool) (string, error) {
 	dsn, err := dsn.Defaults("")
 	if err != nil {
 		return "", err
@@ -87,7 +87,7 @@ func CreateDSN(opts Opts, timeout time.Duration, debug bool) (string, error) {
 }
 
 // OpenDB opens MySQL connections from Opts
-func OpenDB(opts Opts, timeout time.Duration, debug bool) (*sql.DB, error) {
+func OpenDB(opts MyOpts, timeout time.Duration, debug bool) (*sql.DB, error) {
 	dsn, err := CreateDSN(opts, timeout, debug)
 	if err != nil {
 		return nil, err

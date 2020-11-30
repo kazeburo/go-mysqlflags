@@ -2,8 +2,8 @@ ifdef update
   u=-u
 endif
 
-VERSION=0.0.6
-LDFLAGS=-ldflags "-X main.Version=${VERSION}"
+VERSION=0.0.1
+LDFLAGS=-ldflags "-X main.version=${VERSION}"
 GO111MODULE=on
 
 
@@ -17,3 +17,6 @@ tag:
 	git tag v${VERSION}
 	git push origin v${VERSION}
 	git push origin master
+
+check:
+	go test ./...

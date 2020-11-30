@@ -10,7 +10,7 @@ import (
 func TestCreateDSN(t *testing.T) {
 	timeout := 1 * time.Second
 	password := "testpass"
-	opts := Opts{
+	opts := MyOpts{
 		MySQLDefaultsExtraFile: "",
 		MySQLSocket:            "",
 		MySQLHost:              "example.com",
