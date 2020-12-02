@@ -20,9 +20,10 @@ type MyOpts struct {
 	MySQLUser              string  `short:"u" long:"user" default:"root" description:"Username"`
 	MySQLPass              *string `short:"P" long:"password" description:"Password"`
 	MySQLDBName            string  `long:"database" default:"" description:"database name connect to"`
+	MySQLDSNParams         map[string]string
 }
 
-// CreateDSN creates DSN from Opts
+// CreateDSN creates DSN from Opts. omit timeout parameter when timeout is 0
 func CreateDSN(opts MyOpts, timeout time.Duration, debug bool) (string, error) {
 	dsn, err := dsn.Defaults("")
 	if err != nil {
@@ -76,8 +77,14 @@ func CreateDSN(opts MyOpts, timeout time.Duration, debug bool) (string, error) {
 		dsn.Username = os.Getenv("USER")
 	}
 	dsn.DefaultDb = opts.MySQLDBName
-	dsn.Params = append(dsn.Params, "interpolateParams=true")
-	dsn.Params = append(dsn.Params, fmt.Sprintf("timeout=%s", timeout.String()))
+	if timeout > 0 {
+		dsn.Params = append(dsn.Params, fmt.Sprintf("timeout=%s", timeout.String()))
+	}
+	if opts.MySQLDSNParams != nil {
+		for k, v := range opts.MySQLDSNParams {
+			dsn.Params = append(dsn.Params, fmt.Sprintf("%s=%s", k, v))
+		}
+	}
 	dsnString := dsn.String()
 	if debug {
 		dsn.Password = "xxxx"
