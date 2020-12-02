@@ -100,3 +100,61 @@ func OpenDB(opts MyOpts, timeout time.Duration, debug bool) (*sql.DB, error) {
 
 	return db, nil
 }
+
+// QueryMapCol query and converts rows like show status to map[string]string
+func QueryMapCol(db *sql.DB, query string, args ...interface{}) (map[string]string, error) {
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	result := map[string]string{}
+	for rows.Next() {
+		var n string
+		var v string
+		err := rows.Scan(&n, &v)
+		if err != nil {
+			return nil, err
+		}
+		result[n] = v
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// QueryMapRows query and converts rows like show slave status to []map[string]string
+func QueryMapRows(db *sql.DB, query string, args ...interface{}) ([]map[string]string, error) {
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	cols, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	c := make([]string, len(cols))
+	for i, v := range cols {
+		c[i] = v
+	}
+	result := []map[string]string{}
+	for rows.Next() {
+		vals := make([]interface{}, len(cols))
+		for index := range vals {
+			vals[index] = new(sql.RawBytes)
+		}
+		err = rows.Scan(vals...)
+		if err != nil {
+			return nil, err
+		}
+		r := map[string]string{}
+		for i := range vals {
+			r[c[i]] = string(*vals[i].(*sql.RawBytes))
+		}
+		result = append(result, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return result, err
+}
