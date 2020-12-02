@@ -1,9 +1,11 @@
 package mysqlflags
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,4 +24,64 @@ func TestCreateDSN(t *testing.T) {
 	dsn, err := CreateDSN(opts, timeout, false)
 	assert.NoError(t, err)
 	assert.Equal(t, "testuser:testpass@tcp(example.com:33306)/?interpolateParams=true&timeout=1s", dsn)
+}
+
+func TestQueryMapCol(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to init db mock")
+	}
+	defer db.Close()
+
+	columns := []string{"Variable_name", "Value"}
+	mock.ExpectQuery("SHOW").
+		WillReturnRows(
+			sqlmock.NewRows(columns).
+				AddRow("Uptime", 941).
+				AddRow("Current_tls_ca", "ca.pem"),
+		)
+
+	r, err := QueryMapCol(db, "SHOW GLOBAL STATUS")
+	assert.NoError(t, err)
+	want := map[string]string{
+		"Uptime":         "941",
+		"Current_tls_ca": "ca.pem",
+	}
+	if !reflect.DeepEqual(r, want) {
+		t.Fatalf("expected: %v\nactual: %v", want, r)
+	}
+}
+
+func TestQueryMapRows(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to init db mock")
+	}
+	defer db.Close()
+
+	columns := []string{"Master_Host", "Master_User", "Master_Port"}
+	mock.ExpectQuery("SHOW").
+		WillReturnRows(
+			sqlmock.NewRows(columns).
+				AddRow("db1", "user1", 3306).
+				AddRow("db2", "user2", 3306).
+				AddRow("db3", "user3", 3306),
+		)
+
+	r, err := QueryMapRows(db, "SHOW SLAVE STATUS")
+	assert.NoError(t, err)
+	want := []map[string]string{
+		{"Master_Host": "db1",
+			"Master_User": "user1",
+			"Master_Port": "3306"},
+		{"Master_Host": "db2",
+			"Master_User": "user2",
+			"Master_Port": "3306"},
+		{"Master_Host": "db3",
+			"Master_User": "user3",
+			"Master_Port": "3306"},
+	}
+	if !reflect.DeepEqual(r, want) {
+		t.Fatalf("expected: %v\nactual: %v", want, r)
+	}
 }
