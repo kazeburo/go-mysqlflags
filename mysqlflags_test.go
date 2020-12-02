@@ -23,7 +23,18 @@ func TestCreateDSN(t *testing.T) {
 	}
 	dsn, err := CreateDSN(opts, timeout, false)
 	assert.NoError(t, err)
-	assert.Equal(t, "testuser:testpass@tcp(example.com:33306)/?interpolateParams=true&timeout=1s", dsn)
+	assert.Equal(t, "testuser:testpass@tcp(example.com:33306)/?timeout=1s", dsn)
+
+	opts.MySQLDSNParams = map[string]string{
+		"readTimeout": timeout.String(),
+	}
+	dsn, err = CreateDSN(opts, timeout, false)
+	assert.NoError(t, err)
+	assert.Equal(t, "testuser:testpass@tcp(example.com:33306)/?timeout=1s&readTimeout=1s", dsn)
+
+	dsn, err = CreateDSN(opts, 0*time.Second, false)
+	assert.NoError(t, err)
+	assert.Equal(t, "testuser:testpass@tcp(example.com:33306)/?readTimeout=1s", dsn)
 }
 
 func TestQueryMapCol(t *testing.T) {
