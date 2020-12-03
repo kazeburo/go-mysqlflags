@@ -96,3 +96,95 @@ func TestQueryMapRows(t *testing.T) {
 		t.Fatalf("expected: %v\nactual: %v", want, r)
 	}
 }
+
+type QueryColSt struct {
+	Uptime int    `mysqlval:"Uptime"`
+	Tlsca  string `mysqlval:"Current_tls_ca"`
+}
+
+type QueryColStExtra struct {
+	Uptime int    `mysqlval:"Uptime"`
+	Hoge   string `mysqlval:"Hoge"`
+}
+
+func TestQueryCol(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to init db mock")
+	}
+	defer db.Close()
+
+	columns := []string{"Variable_name", "Value"}
+	mock.ExpectQuery("SHOW").
+		WillReturnRows(
+			sqlmock.NewRows(columns).
+				AddRow("Uptime", 941).
+				AddRow("Current_tls_ca", "ca.pem"),
+		)
+
+	var result QueryColSt
+	err = Query(db, "SHOW GLOBAL STATUS").Scan(&result)
+	assert.NoError(t, err)
+	assert.Equal(t, 941, result.Uptime)
+	assert.Equal(t, "ca.pem", result.Tlsca)
+
+	mock.ExpectQuery("SHOW").
+		WillReturnRows(
+			sqlmock.NewRows(columns).
+				AddRow("Uptime", 941).
+				AddRow("Current_tls_ca", "ca.pem"),
+		)
+
+	var result2 QueryColStExtra
+	err = Query(db, "SHOW GLOBAL STATUS").Scan(&result2)
+	assert.Error(t, err)
+}
+
+type QueryRowSt struct {
+	Host string `mysqlval:"Master_Host"`
+	User string `mysqlval:"Master_User"`
+	Port int    `mysqlval:"Master_Port"`
+}
+
+func TestQueryRows(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to init db mock")
+	}
+	defer db.Close()
+
+	columns := []string{"Master_Host", "Master_User", "Master_Port"}
+	mock.ExpectQuery("SHOW").
+		WillReturnRows(
+			sqlmock.NewRows(columns).
+				AddRow("db1", "user1", 3306).
+				AddRow("db2", "user2", 3306).
+				AddRow("db3", "user3", 3306),
+		)
+	mock.ExpectQuery("SHOW").
+		WillReturnRows(
+			sqlmock.NewRows(columns).
+				AddRow("db1", "user1", 3306).
+				AddRow("db2", "user2", 3306).
+				AddRow("db3", "user3", 3306),
+		)
+
+	var result1 QueryRowSt
+	err = Query(db, "SHOW SLAVE STATUS").Scan(&result1)
+	assert.NoError(t, err)
+	assert.Equal(t, "db1", result1.Host)
+	assert.Equal(t, "user1", result1.User)
+	assert.Equal(t, 3306, result1.Port)
+
+	var result2 []QueryRowSt
+	err = Query(db, "SHOW SLAVE STATUS").Scan(&result2)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, len(result2))
+	assert.Equal(t, result2[0].Host, "db1")
+	assert.Equal(t, result2[0].User, "user1")
+	assert.Equal(t, result2[0].Port, 3306)
+	assert.Equal(t, result2[2].Host, "db3")
+	assert.Equal(t, result2[2].User, "user3")
+	assert.Equal(t, result2[2].Port, 3306)
+
+}
