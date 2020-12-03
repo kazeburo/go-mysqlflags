@@ -142,7 +142,7 @@ func (qm *QueryMap) Scan(dest interface{}) error {
 		WeaklyTypedInput: true,
 		ErrorUnsetFields: true,
 		Result:           dest,
-		TagName:          "mysqlval",
+		TagName:          "mysqlvar",
 	}
 	decoder, err := mapstructure.NewDecoder(config)
 	if err != nil {

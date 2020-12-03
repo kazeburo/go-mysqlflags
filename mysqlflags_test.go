@@ -37,13 +37,13 @@ func TestCreateDSN(t *testing.T) {
 }
 
 type QueryColSt struct {
-	Uptime int    `mysqlval:"Uptime"`
-	Tlsca  string `mysqlval:"Current_tls_ca"`
+	Uptime int    `mysqlvar:"Uptime"`
+	Tlsca  string `mysqlvar:"Current_tls_ca"`
 }
 
 type QueryColStExtra struct {
-	Uptime int    `mysqlval:"Uptime"`
-	Hoge   string `mysqlval:"Hoge"`
+	Uptime int    `mysqlvar:"Uptime"`
+	Hoge   string `mysqlvar:"Hoge"`
 }
 
 func TestQueryCol(t *testing.T) {
@@ -80,9 +80,9 @@ func TestQueryCol(t *testing.T) {
 }
 
 type QueryRowSt struct {
-	Host string `mysqlval:"Master_Host"`
-	User string `mysqlval:"Master_User"`
-	Port int    `mysqlval:"Master_Port"`
+	Host string `mysqlvar:"Master_Host"`
+	User string `mysqlvar:"Master_User"`
+	Port int    `mysqlvar:"Master_Port"`
 }
 
 func TestQueryRows(t *testing.T) {
