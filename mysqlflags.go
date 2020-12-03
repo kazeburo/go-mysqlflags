@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"reflect"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/percona/go-mysql/dsn"
 	"github.com/vaughan0/go-ini"
 )
@@ -108,51 +110,102 @@ func OpenDB(opts MyOpts, timeout time.Duration, debug bool) (*sql.DB, error) {
 	return db, nil
 }
 
-// QueryMapCol query and converts rows like show status to map[string]string
-func QueryMapCol(db *sql.DB, query string, args ...interface{}) (map[string]string, error) {
-	rows, err := db.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	result := map[string]string{}
-	for rows.Next() {
-		var n string
-		var v string
-		err := rows.Scan(&n, &v)
-		if err != nil {
-			return nil, err
-		}
-		result[n] = v
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return result, nil
+// QueryMap has rows map and error
+type QueryMap struct {
+	err    error
+	result []map[string]string
 }
 
-// QueryMapRows query and converts rows like show slave status to []map[string]string
-func QueryMapRows(db *sql.DB, query string, args ...interface{}) ([]map[string]string, error) {
+// Scan converts rows to Struct
+func (qm *QueryMap) Scan(dest interface{}) error {
+	if qm.err != nil {
+		return qm.err
+	}
+
+	destRv := reflect.ValueOf(dest)
+	if destRv.Kind() != reflect.Ptr {
+		return fmt.Errorf("not a pointer: %v", dest)
+	}
+
+	destRv = destRv.Elem()
+	var input interface{}
+	if destRv.Kind() != reflect.Slice {
+		if len(qm.result) == 0 {
+			return fmt.Errorf("no sql result")
+		}
+		input = qm.result[0]
+	} else {
+		input = qm.result
+	}
+
+	config := &mapstructure.DecoderConfig{
+		WeaklyTypedInput: true,
+		ErrorUnsetFields: true,
+		Result:           dest,
+		TagName:          "mysqlval",
+	}
+	decoder, err := mapstructure.NewDecoder(config)
+	if err != nil {
+		return err
+	}
+
+	err = decoder.Decode(input)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Query does exec show statement and return QueryMap for Scan
+func Query(db *sql.DB, query string, args ...interface{}) *QueryMap {
 	rows, err := db.Query(query, args...)
 	if err != nil {
-		return nil, err
+		return &QueryMap{err: err}
 	}
 	cols, err := rows.Columns()
 	if err != nil {
-		return nil, err
+		return &QueryMap{err: err}
 	}
 	c := make([]string, len(cols))
 	for i, v := range cols {
 		c[i] = v
 	}
+	if len(cols) == 2 && c[0] == "Variable_name" && c[1] == "Value" {
+		// show status | show variables
+		return queryCol(c, rows)
+	}
+	return queryRow(c, rows)
+}
+
+func queryCol(c []string, rows *sql.Rows) *QueryMap {
+	r := map[string]string{}
+	for rows.Next() {
+		var n string
+		var v string
+		err := rows.Scan(&n, &v)
+		if err != nil {
+			return &QueryMap{err: err}
+		}
+		r[n] = v
+	}
+	if err := rows.Err(); err != nil {
+		return &QueryMap{err: err}
+	}
+	result := []map[string]string{}
+	result = append(result, r)
+	return &QueryMap{result: result, err: nil}
+}
+
+func queryRow(c []string, rows *sql.Rows) *QueryMap {
 	result := []map[string]string{}
 	for rows.Next() {
-		vals := make([]interface{}, len(cols))
+		vals := make([]interface{}, len(c))
 		for index := range vals {
 			vals[index] = new(sql.RawBytes)
 		}
-		err = rows.Scan(vals...)
+		err := rows.Scan(vals...)
 		if err != nil {
-			return nil, err
+			return &QueryMap{err: err}
 		}
 		r := map[string]string{}
 		for i := range vals {
@@ -161,7 +214,7 @@ func QueryMapRows(db *sql.DB, query string, args ...interface{}) ([]map[string]s
 		result = append(result, r)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return &QueryMap{err: err}
 	}
-	return result, err
+	return &QueryMap{result: result, err: nil}
 }
