@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/kazeburo/mapstructure"
 	"github.com/percona/go-mysql/dsn"
 	"github.com/vaughan0/go-ini"
 )
@@ -162,6 +162,7 @@ func Query(db *sql.DB, query string, args ...interface{}) *QueryMap {
 	if err != nil {
 		return &QueryMap{err: err}
 	}
+	defer rows.Close()
 	cols, err := rows.Columns()
 	if err != nil {
 		return &QueryMap{err: err}
