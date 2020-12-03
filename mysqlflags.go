@@ -138,11 +138,27 @@ func (qm *QueryMap) Scan(dest interface{}) error {
 		input = qm.result
 	}
 
+	decodeHook := func(f, t reflect.Type, v interface{}) (interface{}, error) {
+		if f.Kind() == reflect.String && t.Kind() == reflect.Bool {
+			if typed, ok := v.(string); ok {
+				switch typed {
+				case "Yes", "yes", "YES":
+					return "True", nil
+				default:
+					return "False", nil
+				}
+			}
+		}
+
+		return v, nil
+	}
+
 	config := &mapstructure.DecoderConfig{
 		WeaklyTypedInput: true,
 		ErrorUnsetFields: true,
 		Result:           dest,
 		TagName:          "mysqlvar",
+		DecodeHook:       decodeHook,
 	}
 	decoder, err := mapstructure.NewDecoder(config)
 	if err != nil {

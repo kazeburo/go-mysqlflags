@@ -46,6 +46,12 @@ type QueryColStExtra struct {
 	Hoge   string `mysqlvar:"Hoge"`
 }
 
+type QueryColStBool struct {
+	Uptime  int  `mysqlvar:"Uptime"`
+	Running bool `mysqlvar:"Running"`
+	Live    bool `mysqlvar:"Live"`
+}
+
 func TestQueryCol(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -77,6 +83,20 @@ func TestQueryCol(t *testing.T) {
 	var result2 QueryColStExtra
 	err = Query(db, "SHOW GLOBAL STATUS").Scan(&result2)
 	assert.Error(t, err)
+
+	mock.ExpectQuery("SHOW").
+		WillReturnRows(
+			sqlmock.NewRows(columns).
+				AddRow("Uptime", 941).
+				AddRow("Running", "Yes").
+				AddRow("Live", "Nes"),
+		)
+	var result3 QueryColStBool
+	err = Query(db, "SHOW GLOBAL STATUS").Scan(&result3)
+	assert.NoError(t, err)
+	assert.Equal(t, true, result3.Running)
+	assert.Equal(t, false, result3.Live)
+
 }
 
 type QueryRowSt struct {
