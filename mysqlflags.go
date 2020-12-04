@@ -1,15 +1,20 @@
 package mysqlflags
 
 import (
+	"bufio"
+	"bytes"
 	"database/sql"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"os/exec"
 	"reflect"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/kazeburo/mapstructure"
-	"github.com/percona/go-mysql/dsn"
 	"github.com/vaughan0/go-ini"
 )
 
@@ -25,12 +30,111 @@ type MyOpts struct {
 	MySQLDSNParams         map[string]string
 }
 
+type dsn struct {
+	Username  string
+	Password  string
+	Hostname  string
+	Port      string
+	Socket    string
+	DefaultDB string
+	Params    map[string]string
+}
+
+func newDSN() dsn {
+	dsn := dsn{}
+	dsn.Params = map[string]string{}
+	return dsn
+}
+
+func (dsn *dsn) String() string {
+	dsnString := ""
+
+	if dsn.Socket != "" {
+		dsnString = fmt.Sprintf("%s:%s@unix(%s)",
+			dsn.Username,
+			dsn.Password,
+			dsn.Socket,
+		)
+	} else {
+		if dsn.Hostname == "" {
+			dsn.Hostname = "localhost"
+		}
+		if dsn.Port == "" {
+			dsn.Port = "3306"
+		}
+		dsnString = fmt.Sprintf("%s:%s@tcp(%s:%s)",
+			dsn.Username,
+			dsn.Password,
+			dsn.Hostname,
+			dsn.Port,
+		)
+	}
+
+	dsnString += "/" + dsn.DefaultDB
+	p := []string{}
+	for k, v := range dsn.Params {
+		p = append(p, fmt.Sprintf("%s=%s", k, v))
+	}
+	params := strings.Join(p, "&")
+	if params != "" {
+		dsnString += "?" + params
+	}
+	return dsnString
+}
+
+var defautlsRegexp = regexp.MustCompile("^--(.+?)=(.*)")
+
+func parseMySQLDefaults(r io.Reader) dsn {
+	dsn := newDSN()
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		b := scanner.Bytes()
+		res := defautlsRegexp.FindAllSubmatch(b, -1)
+		if res != nil {
+			key := string(res[0][1])
+			val := string(res[0][2])
+			switch key {
+			case "user":
+				dsn.Username = val
+			case "password":
+				dsn.Password = val
+			case "socket":
+				dsn.Socket = val
+			case "host":
+				dsn.Hostname = val
+			case "port":
+				dsn.Port = val
+			}
+		}
+	}
+	if dsn.Socket != "" {
+		dsn.Port = ""
+		dsn.Hostname = ""
+	}
+	if dsn.Hostname == "" && dsn.Socket == "" {
+		dsn.Hostname = "localhost"
+	}
+	return dsn
+}
+
+func defaults() dsn {
+	params := [][]string{
+		{"-s", "client"},
+		{"client"},
+	}
+	for _, param := range params {
+		outout, err := exec.Command("my_print_defaults", param...).Output()
+		if err != nil {
+			continue
+		}
+		return parseMySQLDefaults(bytes.NewReader(outout))
+	}
+	return newDSN()
+}
+
 // CreateDSN creates DSN from Opts. omit timeout parameter when timeout is 0
 func CreateDSN(opts MyOpts, timeout time.Duration, debug bool) (string, error) {
-	dsn, err := dsn.Defaults("")
-	if err != nil {
-		return "", err
-	}
+	dsn := defaults()
 
 	if opts.MySQLDefaultsExtraFile != "" {
 		i, err := ini.LoadFile(opts.MySQLDefaultsExtraFile)
@@ -78,13 +182,13 @@ func CreateDSN(opts MyOpts, timeout time.Duration, debug bool) (string, error) {
 	if dsn.Username == "" {
 		dsn.Username = os.Getenv("USER")
 	}
-	dsn.DefaultDb = opts.MySQLDBName
+	dsn.DefaultDB = opts.MySQLDBName
 	if timeout > 0 {
-		dsn.Params = append(dsn.Params, fmt.Sprintf("timeout=%s", timeout.String()))
+		dsn.Params["timeout"] = timeout.String()
 	}
 	if opts.MySQLDSNParams != nil {
 		for k, v := range opts.MySQLDSNParams {
-			dsn.Params = append(dsn.Params, fmt.Sprintf("%s=%s", k, v))
+			dsn.Params[k] = v
 		}
 	}
 	dsnString := dsn.String()
