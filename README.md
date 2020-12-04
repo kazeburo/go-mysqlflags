@@ -10,6 +10,8 @@ import "github.com/kazeburo/go-mysqlflags"
 
 ### use with go-flags and Connect to DB
 
+Create DSN for connecting database.
+
 ```
 type opts struct {
 	mysqlflags.MyOpts
@@ -19,7 +21,14 @@ type opts struct {
 psr := flags.NewParser(&opts, flags.HelpFlag|flags.PassDoubleDash)
 _, err := psr.Parse()
 
+dsn, err := mysqlflags.CreateDSN(opts.MyOpts, opts.Timeout, false)
+```
 
+CreateDSN reads mysql client parameter from my.cnf files using `github.com/percona/go-mysql/dsn` at first. The parameters given with go-flags overwrite them.
+
+Open Database with mysqlflags.
+
+```
 db, err := mysqlflags.OpenDB(opts.MyOpts, opts.Timeout, false)
 if err != nil {
 	log.Printf("couldn't connect DB: %v", err)
