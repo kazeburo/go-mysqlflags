@@ -98,7 +98,7 @@ func TestQueryCol(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, true, result3.Running)
 	assert.Equal(t, false, result3.Live)
-	assert.Equal(t, true, result3.MyBoool.True())
+	assert.Equal(t, true, result3.MyBoool.Yes())
 	assert.Equal(t, "Yes", result3.MyBoool.String())
 
 }

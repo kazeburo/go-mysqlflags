@@ -120,8 +120,8 @@ func (b *Bool) String() string {
 	return b.original
 }
 
-// True true when the original is Yes or yes or YES
-func (b *Bool) True() bool {
+// Yes return true when the original is Yes or yes or YES
+func (b *Bool) Yes() bool {
 	switch b.original {
 	case "Yes", "yes", "YES":
 		return true
