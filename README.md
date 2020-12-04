@@ -24,7 +24,7 @@ _, err := psr.Parse()
 dsn, err := mysqlflags.CreateDSN(opts.MyOpts, opts.Timeout, false)
 ```
 
-CreateDSN reads mysql client parameter from my.cnf files using `github.com/percona/go-mysql/dsn` at first. The parameters given with go-flags overwrite them.
+When `my_print_defaults` command is available, mysqlflags.CreateDSN reads mysql client parameter from that. The parameters given with go-flags overwrite them.
 
 Open Database with mysqlflags.
 
