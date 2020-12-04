@@ -110,6 +110,26 @@ func OpenDB(opts MyOpts, timeout time.Duration, debug bool) (*sql.DB, error) {
 	return db, nil
 }
 
+// Bool mysql variables boolean
+type Bool struct {
+	original string
+}
+
+// True true when the original string
+func (b *Bool) String() string {
+	return b.original
+}
+
+// True true when the original is Yes or yes or YES
+func (b *Bool) True() bool {
+	switch b.original {
+	case "Yes", "yes", "YES":
+		return true
+	default:
+		return false
+	}
+}
+
 // QueryMap has rows map and error
 type QueryMap struct {
 	err    error
@@ -147,6 +167,10 @@ func (qm *QueryMap) Scan(dest interface{}) error {
 				default:
 					return "False", nil
 				}
+			}
+		} else if f.Kind() == reflect.String && t.String() == "mysqlflags.Bool" {
+			if typed, ok := v.(string); ok {
+				return &Bool{typed}, nil
 			}
 		}
 
