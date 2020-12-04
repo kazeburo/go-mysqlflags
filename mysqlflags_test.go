@@ -35,6 +35,12 @@ func TestCreateDSN(t *testing.T) {
 	dsn, err = CreateDSN(opts, 0*time.Second, false)
 	assert.NoError(t, err)
 	assert.Equal(t, "testuser:testpass@tcp(example.com:33306)/?readTimeout=1s", dsn)
+
+	opts.MySQLSocket = "/dev/null"
+	dsn, err = CreateDSN(opts, timeout, false)
+	assert.NoError(t, err)
+	assert.Equal(t, "testuser:testpass@unix(/dev/null)/?timeout=1s&readTimeout=1s", dsn)
+
 }
 
 type QueryColSt struct {
