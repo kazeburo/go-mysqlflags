@@ -1,6 +1,7 @@
 package mysqlflags
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -98,8 +99,9 @@ func TestQueryCol(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, true, result3.Running)
 	assert.Equal(t, false, result3.Live)
-	assert.Equal(t, true, result3.MyBoool.Yes())
+	assert.True(t, result3.MyBoool.Yes())
 	assert.Equal(t, "Yes", result3.MyBoool.String())
+	assert.Equal(t, "Yes", fmt.Sprintf("%s", result3.MyBoool))
 
 }
 

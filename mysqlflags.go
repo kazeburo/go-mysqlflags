@@ -116,12 +116,12 @@ type Bool struct {
 }
 
 // True true when the original string
-func (b *Bool) String() string {
+func (b Bool) String() string {
 	return b.original
 }
 
 // Yes return true when the original is Yes or yes or YES
-func (b *Bool) Yes() bool {
+func (b Bool) Yes() bool {
 	switch b.original {
 	case "Yes", "yes", "YES":
 		return true
@@ -170,7 +170,7 @@ func (qm *QueryMap) Scan(dest interface{}) error {
 			}
 		} else if f.Kind() == reflect.String && t.String() == "mysqlflags.Bool" {
 			if typed, ok := v.(string); ok {
-				return &Bool{typed}, nil
+				return Bool{typed}, nil
 			}
 		}
 
