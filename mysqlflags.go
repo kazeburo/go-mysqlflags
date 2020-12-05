@@ -227,7 +227,7 @@ func (b Bool) String() string {
 // Yes return true when the original is Yes or yes or YES
 func (b Bool) Yes() bool {
 	switch b.original {
-	case "Yes", "yes", "YES":
+	case "Yes", "yes", "YES", "On", "ON", "on":
 		return true
 	default:
 		return false
@@ -266,7 +266,7 @@ func (qm *QueryMap) Scan(dest interface{}) error {
 		if f.Kind() == reflect.String && t.Kind() == reflect.Bool {
 			if typed, ok := v.(string); ok {
 				switch typed {
-				case "Yes", "yes", "YES":
+				case "Yes", "yes", "YES", "On", "ON", "on":
 					return "True", nil
 				default:
 					return "False", nil

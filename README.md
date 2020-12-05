@@ -66,30 +66,30 @@ if err != nil {
 }
 ```
 
-show slave status (single source)
+show slave(replica) status (single source)
 
 ```
-type slave struct {
+type replica struct {
 	IORunning   mysqlflags.Bool `mysqlvar:"Slave_IO_Running"`
 	SQLRunning  mysqlflags.Bool `mysqlvar:"Slave_SQL_Running"`
     LastSQLError string `mysqlvar:"Last_SQL_Error"`
 }
 
-var slave slave
-err := mysqlflags.Query(db, "SHOW SLAVE STATUS").Scan(&slave)
+var replica replica
+err := mysqlflags.Query(db, "SHOW SLAVE STATUS").Scan(&replica)
 
-f !slave.IORunning.Yes() || !slave.SQLRunning.Yes() {
+f !replica.IORunning.Yes() || !replica.SQLRunning.Yes() {
     fmt.Errorf("something wrong is replication IO:%s SQL:%s Error:%s",
-        slave.IORunning, slave.SQLRunning, slave.LastSQLError);
+        replica.IORunning, replica.SQLRunning, replica.LastSQLError);
 }
 
 ```
 
 
-show slave status (multi source)
+show slave(replica) status (multi source)
 
 ```
-type slave struct {
+type replica struct {
 	IORunning   mysqlflags.Bool `mysqlvar:"Slave_IO_Running"`
 	SQLRunning  mysqlflags.Bool `mysqlvar:"Slave_SQL_Running"`
 	ChannelName *string         `mysqlvar:"Channel_Name"` // use pointer for optinal field
@@ -97,9 +97,9 @@ type slave struct {
 }
 
 
-var slaves []slave
-err := mysqlflags.Query(db, "SHOW SLAVE STATUS").Scan(&slaves)
-for _, slave := range slaves {
+var replicas []replica
+err := mysqlflags.Query(db, "SHOW SLAVE STATUS").Scan(&replicas)
+for _, replica := range replicas {
     ..
 }
 ```
